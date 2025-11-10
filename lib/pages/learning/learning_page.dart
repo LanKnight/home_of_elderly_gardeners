@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import '../common/search_page.dart';
+import '../../models/course_model.dart';
+import 'course_list_page.dart';
+import 'course_detail_page.dart';
+import 'consultation_page.dart';
 
 class LearningPage extends StatelessWidget {
   const LearningPage({super.key});
@@ -19,33 +23,59 @@ class LearningPage extends StatelessWidget {
           )
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-              onPressed: () {
-                // TODO: 课程购买流程
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('进入课程购买（占位）')));
-              },
-              child: const Text('购买课程'),
+      body: Column(
+        children: [
+          // 快捷入口
+          Container(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.school),
+                    label: const Text('全部课程'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const CourseListPage()),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.chat),
+                    label: const Text('咨询'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ConsultationPage()),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-              onPressed: () {
-                // TODO: 咨询功能
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('进入咨询（占位）')));
-              },
-              child: const Text('咨询'),
-            ),
-            const SizedBox(height: 20),
-            const Expanded(child: Center(child: Text('课程列表 / 推荐（占位）'))),
-          ],
-        ),
+          ),
+          const Divider(),
+          // 推荐课程
+          Expanded(
+            child: CourseListPage(showRecommendedOnly: true),
+          ),
+        ],
       ),
     );
   }
 }
+

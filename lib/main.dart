@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/user_provider.dart';
 import 'providers/cart_provider.dart';
+import 'providers/video_provider.dart';
 
 // Utils
 import 'utils/constants.dart';
@@ -15,6 +16,7 @@ import 'pages/auth/user_type_page.dart';
 import 'pages/auth/register_page.dart';
 import 'pages/main/main_page.dart';
 import 'pages/auth/login_page.dart';
+import 'pages/shopping/cart_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -30,6 +32,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => VideoProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
@@ -52,6 +55,9 @@ class MyApp extends StatelessWidget {
                 return RegisterPage(userType: userType);
               },
               AppConstants.routeLogin: (context) => const LoginPage(),
+
+              // Shopping
+              '/cart': (context) => const CartPage(),
             },
             debugShowCheckedModeBanner: false,
           );

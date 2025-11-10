@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
+import 'package:provider/provider.dart';
 
 import '../../models/video_model.dart';
+import '../../providers/video_provider.dart';
 
 class VideoPlayerPage extends StatefulWidget {
   final VideoItem video;
@@ -29,6 +31,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     setState(() {
       _isInitializing = true;
     });
+
+    // 记录观看历史
+    final videoProvider = Provider.of<VideoProvider>(context, listen: false);
+    videoProvider.addToWatchHistory(widget.video);
 
     try {
       _videoController = VideoPlayerController.network(widget.video.source);

@@ -40,10 +40,10 @@ class _MainPageState extends State<MainPage> {
         selectedItemColor: Theme.of(context).primaryColorDark,
         unselectedItemColor: Colors.grey[600],
         showUnselectedLabels: true,
-        selectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-        unselectedLabelStyle: const TextStyle(fontSize: 12),
-        selectedIconTheme: IconThemeData(size: 26, color: Theme.of(context).primaryColorDark),
-        unselectedIconTheme: IconThemeData(size: 22, color: Colors.grey[600]),
+        selectedLabelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        unselectedLabelStyle: const TextStyle(fontSize: 14),
+        selectedIconTheme: IconThemeData(size: 32, color: Theme.of(context).primaryColorDark),
+        unselectedIconTheme: IconThemeData(size: 28, color: Colors.grey[600]),
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
