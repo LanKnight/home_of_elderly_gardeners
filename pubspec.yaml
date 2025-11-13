@@ -18,6 +18,7 @@ dependencies:
   video_player: ^2.8.2
   chewie: ^1.5.0
   cached_network_image: ^3.3.0
+  webview_flutter: ^4.0.0
 
 dev_dependencies:
   flutter_test:
@@ -29,6 +30,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon/QR_code.png
+    - assets/videos/
 
 # 应用图标配置（如需使用 flutter_launcher_icons）
 flutter_launcher_icons:

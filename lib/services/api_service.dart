@@ -40,15 +40,37 @@ class ApiService {
 	}
 
 	List<VideoItem> _mockVideos() {
-		return List.generate(
-			5,
-			(i) => VideoItem(
-				id: 'mock_$i',
-				title: '示例视频 ${i + 1}',
-				source: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
-				thumbnail: null,
-			),
-		);
+		return [
+      VideoItem(
+        id: 'local_1',
+        title: '园艺新手入门：阳台种菜技巧',
+        source: 'assets/videos/gardening_tips_1.mp4',
+        thumbnail: null,
+      ),
+      VideoItem(
+        id: 'local_2',
+        title: '家庭养花：月季花的日常护理',
+        source: 'assets/videos/gardening_tips_2.mp4',
+        thumbnail: null,
+      ),
+      VideoItem(
+        id: 'local_3',
+        title: '绿植养护小窍门',
+        source: 'assets/videos/gardening_tips_3.mp4',
+        thumbnail: null,
+      ),
+      VideoItem(
+        id: 'local_4',
+        title: '多肉植物组合种植教程',
+        source: 'assets/videos/gardening_tips_4.mp4',
+        thumbnail: null,
+      ),
+      VideoItem(
+        id: 'local_5',
+        title: '室内观叶植物推荐',
+        source: 'assets/videos/gardening_tips_5.mp4',
+        thumbnail: null,
+      ),
+    ];
 	}
 }
-

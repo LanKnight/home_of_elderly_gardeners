@@ -1,6 +1,5 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
-import 'package:chewie/chewie.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/video_model.dart';
@@ -16,107 +15,82 @@ class VideoPlayerPage extends StatefulWidget {
 }
 
 class _VideoPlayerPageState extends State<VideoPlayerPage> {
-  VideoPlayerController? _videoController;
-  ChewieController? _chewieController;
-  bool _isInitializing = false;
+  bool _isDesktop = false;
+  bool _isPlaying = false;
 
   @override
   void initState() {
     super.initState();
-    // Do not initialize video immediately. Show thumbnail first if available.
-  }
-
-  Future<void> _startPlayback() async {
-    if (_chewieController != null || _isInitializing) return;
-    setState(() {
-      _isInitializing = true;
-    });
-
+    // 检测是否为桌面平台
+    _isDesktop = Platform.isLinux || Platform.isWindows || Platform.isMacOS;
+    
     // 记录观看历史
-    final videoProvider = Provider.of<VideoProvider>(context, listen: false);
-    videoProvider.addToWatchHistory(widget.video);
-
-    try {
-      _videoController = VideoPlayerController.network(widget.video.source);
-      await _videoController!.initialize();
-      _chewieController = ChewieController(
-        videoPlayerController: _videoController!,
-        autoPlay: true,
-        looping: false,
-      );
-      setState(() {});
-    } catch (e) {
-      // failed to initialize; show helpful error for platforms where the
-      // video_player plugin is not implemented (e.g. missing desktop backend)
-      String message = '播放失败：$e';
-      if (e is UnimplementedError) {
-        message =
-            '当前平台未实现视频播放支持 (UnimplementedError)。\n如果你在 Linux 上运行，请安装 GStreamer 运行时并确保使用支持的目标（Android/iOS 或已启用的桌面插件）。';
-      }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-    } finally {
-      setState(() {
-        _isInitializing = false;
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _chewieController?.dispose();
-    _videoController?.dispose();
-    super.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final videoProvider = Provider.of<VideoProvider>(context, listen: false);
+      videoProvider.addToWatchHistory(widget.video);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(widget.video.title.isNotEmpty ? widget.video.title : '播放')),
-      body: Center(
-        child: _chewieController != null && _videoController != null && _videoController!.value.isInitialized
-            ? Chewie(controller: _chewieController!)
-            : _buildThumbnailOrStart(),
-      ),
+      body: _buildDesktopVideoPlaceholder(),
     );
   }
 
-  Widget _buildThumbnailOrStart() {
-    final thumb = widget.video.thumbnail;
-    if (thumb != null && thumb.isNotEmpty) {
-      return Stack(
-        alignment: Alignment.center,
+  Widget _buildDesktopVideoPlaceholder() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          AspectRatio(
-            aspectRatio: 16 / 9,
-            child: Image.network(
-              thumb,
-              fit: BoxFit.cover,
-              width: double.infinity,
-              errorBuilder: (c, e, s) => Container(color: Colors.black12),
+          // 视频占位符
+          Container(
+            width: 300,
+            height: 200,
+            decoration: BoxDecoration(
+              color: Colors.green[100],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.video_library,
+                  size: 50,
+                  color: Colors.green,
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  '视频播放区域',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.grey,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  widget.video.title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
           ),
-          if (_isInitializing) const CircularProgressIndicator(),
-          if (!_isInitializing)
-            GestureDetector(
-              onTap: _startPlayback,
-              child: Container(
-                decoration: BoxDecoration(color: Colors.black38, shape: BoxShape.circle),
-                padding: const EdgeInsets.all(12),
-                child: const Icon(Icons.play_arrow, size: 48, color: Colors.white),
-              ),
+          const SizedBox(height: 20),
+          const Text(
+            '当前平台不支持视频播放\n请使用移动设备以获得完整功能',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.grey,
+              fontStyle: FontStyle.italic,
             ),
+          ),
         ],
-      );
-    }
-
-    // No thumbnail: provide a start button or progress indicator
-    if (_isInitializing) return const CircularProgressIndicator();
-
-    return ElevatedButton.icon(
-      style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-      onPressed: _startPlayback,
-      icon: const Icon(Icons.play_arrow),
-      label: const Text('播放视频'),
+      ),
     );
   }
 }
