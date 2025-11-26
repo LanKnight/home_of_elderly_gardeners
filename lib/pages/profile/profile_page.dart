@@ -8,6 +8,7 @@ import 'watch_history_page.dart';
 import '../../pages/shopping/order_page.dart';
 import 'my_shop_page.dart';
 import 'settings_page.dart';
+import 'customer_service_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -66,8 +67,7 @@ class ProfilePage extends StatelessWidget {
             leading: const Icon(Icons.support_agent),
             title: const Text('客服'),
             onTap: () {
-              // placeholder customer service
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('联系客服（占位）')));
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomerServicePage()));
             },
           ),
           SwitchListTile(
