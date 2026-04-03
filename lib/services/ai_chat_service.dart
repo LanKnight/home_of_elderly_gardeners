@@ -1,139 +1,159 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'dart:io';
+import 'dart:async';
 
-class AiChatService {
-  static final AiChatService _instance = AiChatService._internal();
-  factory AiChatService() => _instance;
-  AiChatService._internal();
+/// DeepSeek AI 服务 - 专门用于园艺咨询答疑
+class DeepSeekService {
+  static final DeepSeekService _instance = DeepSeekService._internal();
+  factory DeepSeekService() => _instance;
+  DeepSeekService._internal();
 
-  // Coze API配置
-  static const String _cozeApiUrl = 'https://api.coze.cn';
-  static const String _apiKey = 'pat_c661cb6aee7103834d85648e1efd22192aae91c72e04155512bfcbd129d4040e';
-  static const String _botId = '7576856621687504896'; // 您提供的Bot ID
-  static const String _userId = 'user_123456'; // 用户标识
+  // DeepSeek API 配置
+  static const String _apiKey = 'sk-609b0e84b41849b58d8bded03b04f891';
+  static const String _baseUrl = 'https://api.deepseek.com';
+  
+  /// 检查是否已设置 API Key
+  bool get hasApiKey => true; // API Key 已内置，始终可用
 
-  /// 获取Bot ID
-  String get botId => _botId;
-
-  /// 与Coze智能体进行对话
-  Future<String> chatWithBot(String message, {String? conversationId}) async {
-    if (_botId.isEmpty) {
-      return 'Bot ID未设置，请先在Coze平台创建Bot并设置其ID。';
-    }
-
+  /// 发送问题到 DeepSeek AI 获取答案
+  Future<String> askQuestion(String question) async {
     try {
+      // 构建系统提示词，让 AI 专注于园艺领域
+      final systemPrompt = '''你是一位专业的园艺顾问，专门为老年园艺爱好者提供耐心、详细、易懂的园艺知识解答。
+你的回答应该：
+1. 简洁明了，避免过于专业的术语
+2. 分步骤说明，便于操作
+3. 关注安全性和实用性
+4. 体现对老年人的关怀和耐心
+
+请回答以下园艺相关问题：''';
+
       final requestBody = {
-        'bot_id': _botId,
-        'user_id': _userId,
-        'query': message,
-        'conversation_id': conversationId ?? '',
-        'stream': false,
+        'model': 'deepseek-chat',
+        'messages': [
+          {'role': 'system', 'content': systemPrompt},
+          {'role': 'user', 'content': question},
+        ],
+        'temperature': 0.7,
+        'max_tokens': 1000,
       };
 
+      print('[DeepSeek] 开始请求 API...');
+      print('[DeepSeek] 请求URL: $_baseUrl/v1/chat/completions');
+      print('[DeepSeek] 请求体：${jsonEncode(requestBody)}');
+
       final response = await http.post(
-        Uri.parse('$_cozeApiUrl/v3/chat'),
+        Uri.parse('$_baseUrl/v1/chat/completions'),
         headers: {
-          HttpHeaders.contentTypeHeader: 'application/json',
+          HttpHeaders.contentTypeHeader: 'application/json; charset=utf-8',
           HttpHeaders.authorizationHeader: 'Bearer $_apiKey',
+          HttpHeaders.acceptHeader: 'application/json; charset=utf-8',
         },
         body: jsonEncode(requestBody),
+      ).timeout(
+        Duration(seconds: 30),
+        onTimeout: () {
+          print('[DeepSeek] 请求超时 (30 秒)');
+          throw TimeoutException('AI 响应超时，请检查网络连接后重试');
+        },
       );
 
-      // 输出调试信息
-      print('请求URL: $_cozeApiUrl/v3/chat');
-      print('请求头: {Content-Type: application/json, Authorization: Bearer *****}');
-      print('请求体: $requestBody');
-      print('响应状态码: ${response.statusCode}');
-      print('响应体: ${response.body}');
-
+      print('[DeepSeek] 响应状态码：${response.statusCode}');
+      print('[DeepSeek] 响应头：${response.headers}');
+      
+      // 显式使用 UTF-8 解码响应体（遵循编码规范）
+      String responseBody = utf8.decode(response.bodyBytes, allowMalformed: true);
+      print('[DeepSeek] 响应体：$responseBody');
+      
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['code'] == 0 && data['msg'] == 'Success') {
-          // 获取AI回复消息
-          final messages = data['data']?['messages'] as List?;
-          if (messages != null && messages.isNotEmpty) {
-            // 查找assistant角色的消息
-            for (var msg in messages.reversed) {
-              if (msg['role'] == 'assistant' && msg['content_type'] == 'text') {
-                return msg['content'];
-              }
-            }
+        final data = jsonDecode(responseBody);
+        final choices = data['choices'] as List?;
+        
+        if (choices != null && choices.isNotEmpty) {
+          final message = choices[0]['message'];
+          if (message != null && message['content'] != null) {
+            final content = message['content'] as String;
+            print('[DeepSeek] AI 回答成功：$content');
+            return content;
           }
-          return '抱歉，我没有理解您的问题。';
-        } else if (data['code'] == 4011 || data['code'] == 4101) {
-          return 'API认证失败，请检查API密钥是否正确。';
-        } else if (data['code'] == 4001) {
-          return 'Bot ID无效，请检查Bot ID是否正确。';
         }
-        return '抱歉，我现在无法回答您的问题，请稍后再试。错误信息: ${data['msg']} (错误代码: ${data['code']})';
+        
+        print('[DeepSeek] 响应格式异常，无有效内容');
+        return '抱歉，我没有理解您的问题。';
       } else if (response.statusCode == 401) {
-        return 'API认证失败，请检查API密钥是否正确。';
-      } else if (response.statusCode == 404) {
-        return '请求的资源未找到，请检查Bot ID是否正确。';
+        print('[DeepSeek] 认证失败 (401)');
+        return 'API 认证失败，请检查 API Key 是否正确。';
+      } else if (response.statusCode == 429) {
+        print('[DeepSeek] 请求过于频繁 (429)');
+        return '请求过于频繁，请稍后再试。';
+      } else if (response.statusCode >= 500) {
+        print('[DeepSeek] 服务器错误 (${response.statusCode})');
+        return 'AI 服务暂时不可用，请稍后再试。';
       } else {
-        return '抱歉，我现在无法回答您的问题，请稍后再试。状态码: ${response.statusCode}';
+        print('[DeepSeek] 未知错误 (${response.statusCode})');
+        return '抱歉，我现在无法回答您的问题，请稍后再试。状态码：${response.statusCode}';
       }
+    } on SocketException catch (e) {
+      print('[DeepSeek] 网络连接失败：$e');
+      return '网络连接失败，请检查您的网络设置。';
+    } on TimeoutException catch (e) {
+      print('[DeepSeek] 请求超时：$e');
+      return '请求超时，请检查网络连接后重试。';
+    } on FormatException catch (e) {
+      print('[DeepSeek] 数据格式错误：$e');
+      return '响应数据格式错误，请稍后再试。';
     } catch (e, stackTrace) {
-      print('发生异常: $e');
-      print('堆栈跟踪: $stackTrace');
-      if (e is SocketException) {
-        return '网络连接失败，请检查您的网络设置。';
-      } else if (e is FormatException) {
-        return '响应数据格式错误，请稍后再试。';
-      }
-      return '网络连接出现问题，请检查您的网络设置。错误详情: $e';
+      print('[DeepSeek] 未知异常：$e');
+      print('[DeepSeek] 堆栈跟踪：$stackTrace');
+      return '网络连接出现问题，请检查您的网络设置。错误详情：$e';
     }
   }
 
-  /// 测试API连接
+  /// 测试 DeepSeek API 连接
   Future<Map<String, dynamic>> testConnection() async {
     try {
-      // 使用一个简单的API端点进行测试
+      print('[DeepSeek Test] 开始测试连接...');
+      
       final response = await http.post(
-        Uri.parse('$_cozeApiUrl/v3/chat'),
+        Uri.parse('$_baseUrl/v1/chat/completions'),
         headers: {
-          HttpHeaders.contentTypeHeader: 'application/json',
+          HttpHeaders.contentTypeHeader: 'application/json; charset=utf-8',
           HttpHeaders.authorizationHeader: 'Bearer $_apiKey',
+          HttpHeaders.acceptHeader: 'application/json; charset=utf-8',
         },
         body: jsonEncode({
-          'bot_id': _botId,
-          'user_id': _userId,
-          'query': 'Hello',
-          'stream': false,
+          'model': 'deepseek-chat',
+          'messages': [
+            {'role': 'user', 'content': '你好'},
+          ],
+          'max_tokens': 10,
         }),
-      );
-      
-      print('测试连接状态码: ${response.statusCode}');
-      print('测试连接响应体: ${response.body}');
-      
+      ).timeout(Duration(seconds: 10));
+
+      print('[DeepSeek Test] 响应状态码：${response.statusCode}');
+      String responseBody = utf8.decode(response.bodyBytes, allowMalformed: true);
+      print('[DeepSeek Test] 响应体：$responseBody');
+
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['code'] == 0) {
-          return {'success': true, 'message': '连接成功'};
-        } else if (data['code'] == 4011 || data['code'] == 4101) {
-          return {'success': false, 'message': 'API认证失败，请检查API密钥是否正确。'};
-        } else if (data['code'] == 4001) {
-          return {'success': false, 'message': 'Bot ID无效，请检查Bot ID是否正确。'};
-        } else {
-          return {'success': true, 'message': '连接成功'};
-        }
+        print('[DeepSeek Test] 连接成功');
+        return {'success': true, 'message': '连接成功'};
       } else if (response.statusCode == 401) {
-        return {'success': false, 'message': 'API认证失败，请检查API密钥是否正确。'};
+        print('[DeepSeek Test] API Key 无效');
+        return {'success': false, 'message': 'API Key 无效'};
       } else {
-        // 即使返回400错误，只要能连接上API就说明网络是通的
-        if (response.statusCode >= 400 && response.statusCode < 500) {
-          return {'success': true, 'message': '连接成功'};
-        }
-        return {'success': false, 'message': '连接失败，状态码: ${response.statusCode}'};
+        print('[DeepSeek Test] 连接失败，状态码：${response.statusCode}');
+        return {'success': false, 'message': '连接失败，状态码：${response.statusCode}'};
       }
-    } catch (e, stackTrace) {
-      print('测试连接异常: $e');
-      print('测试连接堆栈跟踪: $stackTrace');
-      if (e is SocketException) {
-        return {'success': false, 'message': '网络连接失败，请检查您的网络设置。'};
-      }
-      return {'success': false, 'message': '网络连接出现问题，请检查您的网络设置。'};
+    } on SocketException catch (e) {
+      print('[DeepSeek Test] 网络连接失败：$e');
+      return {'success': false, 'message': '网络连接失败'};
+    } on TimeoutException catch (e) {
+      print('[DeepSeek Test] 请求超时：$e');
+      return {'success': false, 'message': '请求超时'};
+    } catch (e) {
+      print('[DeepSeek Test] 测试异常：$e');
+      return {'success': false, 'message': '测试失败：$e'};
     }
   }
 }

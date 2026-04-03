@@ -11,10 +11,9 @@ class CustomerServicePage extends StatefulWidget {
 class _CustomerServicePageState extends State<CustomerServicePage> {
   final TextEditingController _textController = TextEditingController();
   final List<ChatMessage> _messages = [];
-  final AiChatService _aiService = AiChatService();
+  final DeepSeekService _aiService = DeepSeekService();
   bool _isLoading = false;
   final ScrollController _scrollController = ScrollController();
-  String? _conversationId;
   bool _isConnected = false;
 
   @override
@@ -23,12 +22,12 @@ class _CustomerServicePageState extends State<CustomerServicePage> {
     _testConnection();
   }
 
-  /// 测试与AI服务的连接
-  void _testConnection() async {
+  /// 测试与 AI 服务的连接
+  Future<void> _testConnection() async {
     setState(() {
       _isConnected = false;
       _messages.add(ChatMessage(
-        text: '正在连接到AI园艺助手...',
+        text: '正在连接到 AI 园艺助手...',
         isUser: false,
         time: DateTime.now(),
       ));
@@ -39,7 +38,7 @@ class _CustomerServicePageState extends State<CustomerServicePage> {
       _isConnected = result['success'];
       if (result['success']) {
         _messages.add(ChatMessage(
-          text: '您好！我是您的园艺助手，有什么我可以帮您的吗？',
+          text: '您好！我是您的 AI 园艺助手，有什么我可以帮您的吗？',
           isUser: false,
           time: DateTime.now(),
         ));
@@ -49,15 +48,6 @@ class _CustomerServicePageState extends State<CustomerServicePage> {
           isUser: false,
           time: DateTime.now(),
         ));
-        
-        // 如果是因为Bot ID未设置导致的错误，给出提示
-        if (_aiService.botId.isEmpty) {
-          _messages.add(ChatMessage(
-            text: '提示：您需要先在Coze平台创建Bot，并在应用中设置Bot ID。',
-            isUser: false,
-            time: DateTime.now(),
-          ));
-        }
       }
     });
     
@@ -83,13 +73,10 @@ class _CustomerServicePageState extends State<CustomerServicePage> {
       // 滚动到底部
       _scrollToBottom();
       
-      // 调用AI服务获取回复
-      final response = await _aiService.chatWithBot(
-        message,
-        conversationId: _conversationId,
-      );
+      // 调用 AI 服务获取回复
+      final response = await _aiService.askQuestion(message);
       
-      // 添加AI回复到列表
+      // 添加 AI 回复到列表
       setState(() {
         _messages.add(ChatMessage(
           text: response, 
@@ -104,7 +91,7 @@ class _CustomerServicePageState extends State<CustomerServicePage> {
     } catch (e) {
       setState(() {
         _messages.add(ChatMessage(
-          text: '发生未知错误，请稍后再试。错误信息: $e',
+          text: '发生未知错误，请稍后再试。错误信息：$e',
           isUser: false,
           time: DateTime.now(),
         ));
@@ -139,7 +126,7 @@ class _CustomerServicePageState extends State<CustomerServicePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AI园艺助手'),
+        title: const Text('AI 园艺助手'),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
         actions: [
